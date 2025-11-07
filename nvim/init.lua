@@ -7,11 +7,29 @@ vim.opt.shiftwidth = 2
 vim.opt.tabstop = 2
 vim.opt.title = true
 
+vim.opt.completeopt = { "menu", "menuone", "noselect" }
+vim.opt.signcolumn = "yes"
+vim.opt.termguicolors = true
+vim.opt.updatetime = 300
+
 -- remove trailing whitespace on save
 vim.api.nvim_create_autocmd("BufWritePre", {
   pattern = "*",
-  callback = function()
-    vim.cmd([[%s/\s\+$//e]])
+  callback = function(args)
+    local bufnr = args.buf
+    if not vim.bo[bufnr].modifiable or vim.bo[bufnr].readonly or vim.wo.diff then
+      return
+    end
+    local clients = (
+      vim.lsp.get_clients and vim.lsp.get_clients({ bufnr = bufnr })
+    ) or (
+      vim.lsp.buf_get_clients(bufnr)
+    )
+    if next(clients) == nil then return end
+    -- keep search/cursor stable & be quiet
+    local view = vim.fn.winsaveview()
+    vim.cmd([[silent keepjumps keeppatterns %s/\s\+$//e]])
+    vim.fn.winrestview(view)
   end,
 })
 
@@ -135,6 +153,7 @@ require('packer').startup(function(use)
   use 'hrsh7th/cmp-nvim-lsp'
   use 'hrsh7th/cmp-nvim-lsp-signature-help'
   use 'junegunn/fzf'
+  use 'junegunn/fzf.vim'
   use 'neovim/nvim-lspconfig'
   use 'nvim-lua/plenary.nvim'
   use 'nvim-tree/nvim-web-devicons'
